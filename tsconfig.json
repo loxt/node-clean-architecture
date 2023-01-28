@@ -10,6 +10,8 @@
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "baseUrl": "src",
+    "strict": true,
+
     "paths": {
       "@/*": ["*"],
       "@/tests/*": ["../tests/*"]
