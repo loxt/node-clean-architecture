@@ -3,15 +3,23 @@ import { FacebookAuthenticationUseCase } from '@/data/usecases'
 
 import { mock, type MockProxy } from 'jest-mock-extended'
 import { type LoadFacebookUserApi } from '@/data/contracts/apis'
+import { type LoadUserAccountRepository } from '@/data/contracts/repositories'
 
 describe('FacebookAuthenticationUseCase unit tests', function () {
   let loadFacebookUserApi: MockProxy<LoadFacebookUserApi>
+  let loadUserAccountRepository: MockProxy<LoadUserAccountRepository>
   let usecase: FacebookAuthenticationUseCase
   const token = 'any_token'
 
   beforeEach(function () {
     loadFacebookUserApi = mock()
-    usecase = new FacebookAuthenticationUseCase(loadFacebookUserApi)
+    loadFacebookUserApi.loadUser.mockResolvedValue({
+      name: 'any_name',
+      email: 'any_email',
+      id: 'any_id'
+    })
+    loadUserAccountRepository = mock()
+    usecase = new FacebookAuthenticationUseCase(loadFacebookUserApi, loadUserAccountRepository)
   })
 
   it('should call LoadFacebookUserApi with correct params', async function () {
@@ -31,5 +39,14 @@ describe('FacebookAuthenticationUseCase unit tests', function () {
       token
     })
     expect(authResult).toEqual(new AuthenticationError())
+  })
+  it('should call LoadUserAccountRepo when LoadFacebookUserApi returns data', async function () {
+    await usecase.execute({
+      token
+    })
+    expect(loadUserAccountRepository.load).toBeCalledWith({
+      email: 'any_email'
+    })
+    expect(loadUserAccountRepository.load).toHaveBeenCalledTimes(1)
   })
 })
