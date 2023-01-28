@@ -3,23 +3,23 @@ import { FacebookAuthenticationUseCase } from '@/data/usecases'
 
 import { mock, type MockProxy } from 'jest-mock-extended'
 import { type LoadFacebookUserApi } from '@/data/contracts/apis'
-import { type LoadUserAccountRepository } from '@/data/contracts/repositories'
+import { type CreateFacebookAccountRepository, type LoadUserAccountRepository } from '@/data/contracts/repositories'
 
 describe('FacebookAuthenticationUseCase unit tests', function () {
-  let loadFacebookUserApi: MockProxy<LoadFacebookUserApi>
-  let loadUserAccountRepository: MockProxy<LoadUserAccountRepository>
+  let facebookApi: MockProxy<LoadFacebookUserApi>
+  let userAccountRepository: MockProxy<LoadUserAccountRepository & CreateFacebookAccountRepository>
   let usecase: FacebookAuthenticationUseCase
   const token = 'any_token'
 
   beforeEach(function () {
-    loadFacebookUserApi = mock()
-    loadFacebookUserApi.loadUser.mockResolvedValue({
+    facebookApi = mock()
+    facebookApi.loadUser.mockResolvedValue({
       name: 'any_name',
       email: 'any_email',
-      id: 'any_id'
+      facebookId: 'any_id'
     })
-    loadUserAccountRepository = mock()
-    usecase = new FacebookAuthenticationUseCase(loadFacebookUserApi, loadUserAccountRepository)
+    userAccountRepository = mock()
+    usecase = new FacebookAuthenticationUseCase(facebookApi, userAccountRepository)
   })
 
   it('should call LoadFacebookUserApi with correct params', async function () {
@@ -27,13 +27,13 @@ describe('FacebookAuthenticationUseCase unit tests', function () {
       token
     })
 
-    expect(loadFacebookUserApi.loadUser).toBeCalledWith({
+    expect(facebookApi.loadUser).toBeCalledWith({
       token
     })
-    expect(loadFacebookUserApi.loadUser).toHaveBeenCalledTimes(1)
+    expect(facebookApi.loadUser).toHaveBeenCalledTimes(1)
   })
   it('should return AuthenticationError when LoadFacebookUserApi returns undefined', async function () {
-    loadFacebookUserApi.loadUser.mockResolvedValueOnce(undefined)
+    facebookApi.loadUser.mockResolvedValueOnce(undefined)
 
     const authResult = await usecase.execute({
       token
@@ -44,9 +44,21 @@ describe('FacebookAuthenticationUseCase unit tests', function () {
     await usecase.execute({
       token
     })
-    expect(loadUserAccountRepository.load).toBeCalledWith({
+    expect(userAccountRepository.load).toBeCalledWith({
       email: 'any_email'
     })
-    expect(loadUserAccountRepository.load).toHaveBeenCalledTimes(1)
+    expect(userAccountRepository.load).toHaveBeenCalledTimes(1)
+  })
+  it('should call CreateUserAccountRepo when LoadFacebookUserApi returns undefined', async function () {
+    userAccountRepository.load.mockResolvedValueOnce(undefined)
+    await usecase.execute({
+      token
+    })
+    expect(userAccountRepository.createFromFacebook).toBeCalledWith({
+      email: 'any_email',
+      name: 'any_name',
+      facebookId: 'any_id'
+    })
+    expect(userAccountRepository.createFromFacebook).toHaveBeenCalledTimes(1)
   })
 })
