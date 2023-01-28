@@ -1,38 +1,34 @@
-import { type FacebookAuthentication } from '@/domain/usecases'
-
-class FacebookAuthenticationUseCase {
-  constructor (private readonly LoadFacebookUserApi: LoadFacebookUserApi) {}
-
-  async execute (params: FacebookAuthentication.Params): Promise<void> {
-    await this.LoadFacebookUserApi.loadUser(params)
-  }
-}
-
-interface LoadFacebookUserApi {
-  loadUser: (params: LoadFacebookUserApi.Params) => Promise<void>
-}
-
-namespace LoadFacebookUserApi {
-  export type Params = {
-    token: string
-  }
-}
+import { AuthenticationError } from '@/domain/errors'
+import { type LoadFacebookUserApi } from '@/data/contracts/apis'
+import { FacebookAuthenticationUseCase } from '@/data/usecases'
 
 class LoadFacebookUserApiSpy implements LoadFacebookUserApi {
   token?: string
-  async loadUser (params: LoadFacebookUserApi.Params): Promise<void> {
+  result: undefined
+  async loadUser (params: LoadFacebookUserApi.Params): Promise<LoadFacebookUserApi.Result> {
     this.token = params.token
+    return this.result
   }
 }
 
 describe('FacebookAuthenticationUseCase unit tests', function () {
   it('should call LoadFacebookUserApi with correct params', async function () {
-    const LoadFacebookUserApi = new LoadFacebookUserApiSpy()
-    const usecase = new FacebookAuthenticationUseCase(LoadFacebookUserApi)
+    const loadFacebookUserApi = new LoadFacebookUserApiSpy()
+    const usecase = new FacebookAuthenticationUseCase(loadFacebookUserApi)
     await usecase.execute({
       token: 'any_token'
     })
 
-    expect(LoadFacebookUserApi.token).toBe('any_token')
+    expect(loadFacebookUserApi.token).toBe('any_token')
+  })
+  it('should return AuthenticationError when LoadFacebookUserApi returns undefined', async function () {
+    const loadFacebookUserApi = new LoadFacebookUserApiSpy()
+    loadFacebookUserApi.result = undefined
+
+    const usecase = new FacebookAuthenticationUseCase(loadFacebookUserApi)
+    const authResult = await usecase.execute({
+      token: 'any_token'
+    })
+    expect(authResult).toEqual(new AuthenticationError())
   })
 })
